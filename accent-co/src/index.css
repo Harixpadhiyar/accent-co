@@ -1,0 +1,132 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Mona+Sans:ital,wght@0,200..900;1,200..900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  --color-yellow: #e7d393;
+  --color-yellow-light: #f7e8ba;
+  --color-yellow-dark: #c5a85b;
+  --color-gold: #e7d393;
+  --color-champagne: #faeed1;
+  --color-white-100: #efefef;
+  --color-charcoal: #0a0c10;
+  
+  --font-sans: "Mona Sans", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: "DM Serif Text", "Playfair Display", Georgia, serif;
+}
+
+html,
+body {
+  width: 100%;
+  background-color: #07080a;
+  color: #efefef;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Lenis Smooth Scroll Rules */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Custom Gold Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #07080a;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(231, 211, 147, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(231, 211, 147, 0.6);
+}
+
+@utility text-gold-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #faeed1 25%, #e7d393 60%, #c4a14d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility text-silver-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility glass-panel {
+  background: rgba(10, 12, 16, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(231, 211, 147, 0.22);
+}
+
+@utility glass-pill {
+  background: rgba(10, 12, 16, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(231, 211, 147, 0.3);
+}
+
+@utility luxury-btn-gold {
+  background: linear-gradient(135deg, #f7e8ba 0%, #e7d393 50%, #c5a85b 100%);
+  color: #07080a;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(231, 211, 147, 0.25);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(231, 211, 147, 0.45);
+  }
+}
+
+@utility luxury-btn-outline {
+  background: rgba(10, 12, 16, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #faeed1;
+  border: 1px solid rgba(231, 211, 147, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(231, 211, 147, 0.15);
+    border-color: #e7d393;
+    color: #ffffff;
+    transform: translateY(-2px);
+  }
+}
+
+@layer components {
+  /* Tall container gives ScrollTrigger the scroll distance to scrub the video */
+  .scroll-container {
+    @apply relative w-full;
+    height: 500vh;
+  }
+
+  .video-wrapper {
+    @apply fixed inset-0 w-screen h-screen overflow-hidden;
+
+    video {
+      @apply w-full h-full object-cover;
+    }
+  }
+}
