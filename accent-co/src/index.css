@@ -10,7 +10,7 @@
   --color-champagne: #faeed1;
   --color-white-100: #efefef;
   --color-charcoal: #0a0c10;
-  
+
   --font-sans: "Mona Sans", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: "DM Serif Text", "Playfair Display", Georgia, serif;
 }
@@ -27,7 +27,8 @@ body {
 }
 
 /* Lenis Smooth Scroll Rules */
-html.lenis, html.lenis body {
+html.lenis,
+html.lenis body {
   height: auto;
 }
 
@@ -47,13 +48,16 @@ html.lenis, html.lenis body {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #07080a;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(231, 211, 147, 0.3);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(231, 211, 147, 0.6);
 }
@@ -116,17 +120,74 @@ html.lenis, html.lenis body {
 }
 
 @layer components {
+
   /* Tall container gives ScrollTrigger the scroll distance to scrub the video */
   .scroll-container {
     @apply relative w-full;
     height: 500vh;
+    contain: layout style paint;
   }
 
   .video-wrapper {
     @apply fixed inset-0 w-screen h-screen overflow-hidden;
+    /* Force GPU compositing for the video layer */
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    will-change: transform;
 
     video {
       @apply w-full h-full object-cover;
+      /* GPU-accelerated video rendering */
+      backface-visibility: hidden;
+      transform: translateZ(0);
     }
+  }
+
+  /* GPU-promote all animated scene text layers */
+  [class*="scene-"][class*="-line"] {
+    will-change: transform, opacity, filter;
+    backface-visibility: hidden;
+  }
+
+  /* Loading overlay fade-out */
+  .hero-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #07080a;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hero-loader.loaded {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .hero-loader-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(231, 211, 147, 0.15);
+    border-top-color: #e7d393;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .hero-loader-text {
+    margin-top: 16px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(231, 211, 147, 0.6);
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 }

@@ -2,8 +2,12 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { useEffect, useRef } from 'react'
-import videoSrc from '../assets/output.mp4'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+// Video served from /public — no Vite asset import.
+// This prevents the 31MB file from being bundled into dist/assets/,
+// and lets Vercel CDN serve it with proper range-request support.
+const VIDEO_SRC = '/videos/output.mp4'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -47,6 +51,11 @@ export default function Hero() {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const scrollIndicatorRef = useRef(null)
+  const [videoReady, setVideoReady] = useState(false)
+
+  // Track the target time for requestVideoFrameCallback approach
+  const targetTimeRef = useRef(0)
+  const rafIdRef = useRef(null)
 
   // 1. Lenis Smooth Momentum Scrolling Integration
   useEffect(() => {
@@ -73,33 +82,106 @@ export default function Hero() {
     }
   }, [])
 
-  // 2. GSAP ScrollTrigger Master Timeline
+  // 2. Video readiness detection
+  const handleVideoReady = useCallback(() => {
+    setVideoReady(true)
+  }, [])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    // Use canplaythrough for reliable buffering detection
+    if (video.readyState >= 4) {
+      setVideoReady(true)
+    } else {
+      video.addEventListener('canplaythrough', handleVideoReady, { once: true })
+    }
+
+    return () => {
+      video.removeEventListener('canplaythrough', handleVideoReady)
+    }
+  }, [handleVideoReady])
+
+  // 3. Frame-accurate video scrubbing with requestVideoFrameCallback
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype
+
+    if (hasRVFC) {
+      // Use requestVideoFrameCallback for frame-accurate updates.
+      // This ensures we only paint when the browser has actually decoded a frame,
+      // eliminating blank/white flashes during scrubbing.
+      const onVideoFrame = () => {
+        // Only seek if the target time differs significantly from current
+        const diff = Math.abs(video.currentTime - targetTimeRef.current)
+        if (diff > 0.03) {
+          video.currentTime = targetTimeRef.current
+        }
+        rafIdRef.current = video.requestVideoFrameCallback(onVideoFrame)
+      }
+      rafIdRef.current = video.requestVideoFrameCallback(onVideoFrame)
+
+      return () => {
+        if (rafIdRef.current != null) {
+          video.cancelVideoFrameCallback(rafIdRef.current)
+        }
+      }
+    }
+    // Fallback: direct currentTime assignment (handled by GSAP tween below)
+  }, [])
+
+  // 4. GSAP ScrollTrigger Master Timeline
   useGSAP(() => {
     if (!videoRef.current || !containerRef.current) return
 
     videoRef.current.currentTime = 0
+
+    const hasRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype
 
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 1, // Smooth scrub synchronization
+        scrub: 1.5, // Smoother scrub for CDN-served video
       },
     })
 
     // Video Scrub on 10-second normalized timeline
     const handleLoaded = () => {
       if (videoRef.current && videoRef.current.duration) {
-        tl.to(
-          videoRef.current,
-          {
-            currentTime: videoRef.current.duration,
-            ease: 'none',
-            duration: 10,
-          },
-          0
-        )
+        if (hasRVFC) {
+          // With requestVideoFrameCallback: tween a proxy object,
+          // and the rVFC loop reads targetTimeRef to set currentTime
+          // only when a decoded frame is available.
+          const proxy = { time: 0 }
+          tl.to(
+            proxy,
+            {
+              time: videoRef.current.duration,
+              ease: 'none',
+              duration: 10,
+              onUpdate: () => {
+                targetTimeRef.current = proxy.time
+              },
+            },
+            0
+          )
+        } else {
+          // Fallback: direct GSAP currentTime tween
+          tl.to(
+            videoRef.current,
+            {
+              currentTime: videoRef.current.duration,
+              ease: 'none',
+              duration: 10,
+            },
+            0
+          )
+        }
       }
     }
 
@@ -223,6 +305,12 @@ export default function Hero() {
 
   return (
     <div ref={containerRef} className="scroll-container">
+      {/* Loading overlay — visible until video is buffered enough to scrub */}
+      <div className={`hero-loader ${videoReady ? 'loaded' : ''}`}>
+        <div className="hero-loader-spinner" />
+        <span className="hero-loader-text">Loading experience</span>
+      </div>
+
       {/* Fixed Fullscreen Background Video */}
       <div className="video-wrapper">
         <video
@@ -230,9 +318,10 @@ export default function Hero() {
           muted
           playsInline
           preload="auto"
-          src={videoSrc}
           className="w-full h-full object-cover"
-        />
+        >
+          <source src={VIDEO_SRC} type="video/mp4" />
+        </video>
         {/* Soft dark vignette overlay for optimal text contrast */}
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
       </div>
@@ -285,8 +374,8 @@ export default function Hero() {
                   <a
                     href={scene.linkHref}
                     className={`scene-${index}-line inline-block font-sans text-xs sm:text-sm transition-colors underline underline-offset-8 cursor-pointer ${scene.highlightLink
-                        ? 'text-[#e7d393] font-semibold hover:text-white decoration-[#e7d393] hover:decoration-white'
-                        : 'text-white font-medium hover:text-[#e7d393] decoration-white/40 hover:decoration-[#e7d393]'
+                      ? 'text-[#e7d393] font-semibold hover:text-white decoration-[#e7d393] hover:decoration-white'
+                      : 'text-white font-medium hover:text-[#e7d393] decoration-white/40 hover:decoration-[#e7d393]'
                       }`}
                   >
                     {scene.linkText}
